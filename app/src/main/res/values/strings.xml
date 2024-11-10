@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">mobileairportapp</string>
+
+    <string name="welcomeTitle">
+        Welcome on Internaltional
+    </string>
+    <string name="welcomeTitleAirport">
+        airport App!
+    </string>
+</resources>
