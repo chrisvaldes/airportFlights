@@ -57,7 +57,9 @@ class AirportsScreen {
                             .padding(vertical = 4.dp)
                                 // passer l'identifiant ici pour les actions dans la bd
                             .clickable {
-                                navController.navigate("Flight_Screen/${airport.iataCode}")
+                                navController.navigate("Flight_Screen/${airport.iataCode}"){
+                                    popUpTo("searchAirport_screen")
+                                }
                             }
                     ) {
                         Text(
@@ -108,7 +110,10 @@ class AirportsScreen {
                         modifier = Modifier
                             .height(30.dp)
                             .width(30.dp)
-                            .clickable { navController.navigate("searchAirport_screen") },
+                            .clickable {
+                                navController.popBackStack()
+                                navController.navigate("searchAirport_screen")
+                                       },
                         colorFilter = ColorFilter.tint(Color.Black) // Appliquer la couleur blanche
                     )
 
@@ -126,7 +131,11 @@ class AirportsScreen {
                         Icon(painter = painterResource(id = R.drawable.magnifying_glass_solid), contentDescription = null,
                             modifier = Modifier
                                 .size(16.dp)
-                                .clickable { navController.navigate("searchAirport_screen") }, tint = Color.DarkGray)
+                                .clickable {
+                                    navController.navigate("searchAirport_screen") {
+                                        popUpTo("Airports") { inclusive = true }
+                                    }
+                                           }, tint = Color.DarkGray)
                     }
                 }
 
@@ -140,7 +149,11 @@ class AirportsScreen {
             Box(modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 20.dp)
-                .clickable { navController.navigate("AddNewAirport") }) {
+                .clickable {
+                    navController.navigate("AddNewAirport"){
+                        popUpTo("Airports") { inclusive = true }
+                    }
+                }) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(contentAlignment = Alignment.Center ,
                         modifier = Modifier
@@ -160,7 +173,11 @@ class AirportsScreen {
             Box(modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 20.dp)
-                .clickable { navController.navigate("AddNewTravel") }) {
+                .clickable {
+                    navController.navigate("AddNewTravel"){
+                        popUpTo("Airports") { inclusive = true }
+                    }
+                }) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(contentAlignment = Alignment.Center ,
                         modifier = Modifier

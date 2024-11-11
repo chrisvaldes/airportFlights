@@ -4,6 +4,12 @@ import android.content.Context
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import androidx.compose.runtime.mutableStateOf
+import com.example.mobileairportapp.database.DatabaseHelper.Companion.COLUMN_AIRPORT_ID
+import com.example.mobileairportapp.database.DatabaseHelper.Companion.COLUMN_FLIGHT_ID
+import com.example.mobileairportapp.database.DatabaseHelper.Companion.COLUMN_IATA_CODE
+import com.example.mobileairportapp.database.DatabaseHelper.Companion.COLUMN_NAME
+import com.example.mobileairportapp.database.DatabaseHelper.Companion.COLUMN_USER_FAVORITE
+import com.example.mobileairportapp.database.DatabaseHelper.Companion.TABLE_FLIGHT
 
 //penser a ajouter les messages de succès et d'erreur.
 
@@ -14,8 +20,8 @@ class Repository(context: Context) {
     fun addAirport(iata_code : String, name: String): Long {
         val db = dbHelper.writableDatabase
         val values = ContentValues().apply {
-            put(DatabaseHelper.COLUMN_IATA_CODE, iata_code)
-            put(DatabaseHelper.COLUMN_NAME, name)
+            put(COLUMN_IATA_CODE, iata_code)
+            put(COLUMN_NAME, name)
         }
         return db.insert(DatabaseHelper.TABLE_AIRPORT, null, values)
     }
@@ -27,9 +33,9 @@ class Repository(context: Context) {
 
         with(cursor) {
             while (moveToNext()) {
-                val id = getString(getColumnIndexOrThrow(DatabaseHelper.COLUMN_AIRPORT_ID))
-                val iataCode = getString(getColumnIndexOrThrow(DatabaseHelper.COLUMN_IATA_CODE))
-                val name = getString(getColumnIndexOrThrow(DatabaseHelper.COLUMN_NAME))
+                val id = getString(getColumnIndexOrThrow(COLUMN_AIRPORT_ID))
+                val iataCode = getString(getColumnIndexOrThrow(COLUMN_IATA_CODE))
+                val name = getString(getColumnIndexOrThrow(COLUMN_NAME))
                 airports.add(Airport(id.toLong(), iataCode, name))
             }
         }
@@ -57,7 +63,7 @@ class Repository(context: Context) {
         val cursor: Cursor = db.query(
             DatabaseHelper.TABLE_AIRPORT,
             null, // Sélectionner toutes les colonnes
-            "${DatabaseHelper.COLUMN_IATA_CODE} = ?", // Clause WHERE
+            "$COLUMN_IATA_CODE = ?", // Clause WHERE
             arrayOf(iata_code), // Argument pour la clause WHERE
             null, // Pas de GROUP BY
             null, // Pas de HAVING
@@ -66,9 +72,9 @@ class Repository(context: Context) {
 
         with(cursor) {
             if (moveToFirst()) { // Vérifier s'il y a au moins un enregistrement
-                val id = getLong(getColumnIndexOrThrow(DatabaseHelper.COLUMN_AIRPORT_ID))
-                val iata = getString(getColumnIndexOrThrow(DatabaseHelper.COLUMN_IATA_CODE))
-                val name = getString(getColumnIndexOrThrow(DatabaseHelper.COLUMN_NAME))
+                val id = getLong(getColumnIndexOrThrow(COLUMN_AIRPORT_ID))
+                val iata = getString(getColumnIndexOrThrow(COLUMN_IATA_CODE))
+                val name = getString(getColumnIndexOrThrow(COLUMN_NAME))
                 airport = Airport(id, iata, name)
             }
         }
@@ -83,12 +89,12 @@ class Repository(context: Context) {
 
         with(cursor) {
             while (moveToNext()) {
-                val id = getString(getColumnIndexOrThrow(DatabaseHelper.COLUMN_FLIGHT_ID))
+                val id = getInt(getColumnIndexOrThrow(COLUMN_FLIGHT_ID))
                 val departure_iata = getString(getColumnIndexOrThrow(DatabaseHelper.COLUMN_DEPARTURE_FLIGHT_IATA))
                 val departure_name = getString(getColumnIndexOrThrow(DatabaseHelper.COLUMN_DEPARTURE_FLIGHT_NAME))
                 val destination_iata = getString(getColumnIndexOrThrow(DatabaseHelper.COLUMN_DESTINATION_FLIGHT_IATA))
                 val destination_name = getString(getColumnIndexOrThrow(DatabaseHelper.COLUMN_DESTINATION_FLIGHT_NAME))
-                val isFavoriteString = getString(getColumnIndexOrThrow(DatabaseHelper.COLUMN_USER_FAVORITE))
+                val isFavoriteString = getString(getColumnIndexOrThrow(COLUMN_USER_FAVORITE))
                 val isFavorite = isFavoriteString.toBoolean()
                 flights.add(Flight(id, departure_iata, departure_name, destination_iata, destination_name,
                     mutableStateOf(isFavorite)
@@ -117,19 +123,105 @@ class Repository(context: Context) {
 
         with(cursor) {
             while (moveToNext()) {
-                val id = getString(getColumnIndexOrThrow(DatabaseHelper.COLUMN_FLIGHT_ID))
+                val id = getInt(getColumnIndexOrThrow(COLUMN_FLIGHT_ID))
                 val departure_iata = getString(getColumnIndexOrThrow(DatabaseHelper.COLUMN_DEPARTURE_FLIGHT_IATA))
                 val departure_name = getString(getColumnIndexOrThrow(DatabaseHelper.COLUMN_DEPARTURE_FLIGHT_NAME))
                 val destination_iata = getString(getColumnIndexOrThrow(DatabaseHelper.COLUMN_DESTINATION_FLIGHT_IATA))
                 val destination_name = getString(getColumnIndexOrThrow(DatabaseHelper.COLUMN_DESTINATION_FLIGHT_NAME))
-                val isFavoriteString = getString(getColumnIndexOrThrow(DatabaseHelper.COLUMN_USER_FAVORITE))
-                val isFavorite = isFavoriteString.toBoolean()
+                val isFavoriteInt = getInt(getColumnIndexOrThrow(COLUMN_USER_FAVORITE))
+                val isFavorite = isFavoriteInt == 1
                 flights.add(Flight(id, departure_iata, departure_name, destination_iata, destination_name,
                     mutableStateOf(isFavorite)
                 ))
             }
         }
         cursor.close()
+        return flights
+    }
+
+    fun searchAirports(query: String): List<Airport> {
+        val db: SQLiteDatabase = dbHelper.readableDatabase// Obtenez votre instance de base de données
+        val airports = mutableListOf<Airport>()
+
+        val cursor = db.query(
+            DatabaseHelper.TABLE_AIRPORT,
+            arrayOf(COLUMN_AIRPORT_ID, COLUMN_IATA_CODE, COLUMN_NAME),
+            "$COLUMN_NAME LIKE ?",
+            arrayOf("%$query%"),
+            null,
+            null,
+            null
+        )
+
+        with(cursor) {
+            while (moveToNext()) {
+                val id = getInt(getColumnIndexOrThrow(COLUMN_AIRPORT_ID))
+                val iataCode = getString(getColumnIndexOrThrow(COLUMN_IATA_CODE))
+                val name = getString(getColumnIndexOrThrow(COLUMN_NAME))
+                airports.add(Airport(id.toLong(), iataCode, name))
+            }
+        }
+        return airports
+    }
+
+    fun updateFavoriteStatus(flightId: Long, isFavorite: Boolean) {
+        val db: SQLiteDatabase = dbHelper.writableDatabase // Obtenez l'instance de la base de données
+        val contentValues = ContentValues().apply {
+            put(COLUMN_USER_FAVORITE, isFavorite)
+        }
+
+        // Mettre à jour la ligne correspondante
+        db.update(
+            TABLE_FLIGHT,
+            contentValues,
+            "$COLUMN_FLIGHT_ID = ?",
+            arrayOf(flightId.toString())
+        )
+    }
+
+    fun getFavoriteFlights(): List<Flight> {
+        val db: SQLiteDatabase = dbHelper.readableDatabase
+        val flights = mutableListOf<Flight>()
+
+        // Requête pour récupérer tous les vols où isFavorite est vrai
+        val cursor = db.query(
+            DatabaseHelper.TABLE_FLIGHT,
+            arrayOf(
+                COLUMN_FLIGHT_ID,
+                DatabaseHelper.COLUMN_DEPARTURE_FLIGHT_IATA,
+                DatabaseHelper.COLUMN_DEPARTURE_FLIGHT_NAME,
+                DatabaseHelper.COLUMN_DESTINATION_FLIGHT_IATA,
+                DatabaseHelper.COLUMN_DESTINATION_FLIGHT_NAME,
+                COLUMN_USER_FAVORITE
+            ),
+            "$COLUMN_USER_FAVORITE = ?",
+            arrayOf("1"), // Filtrer pour isFavorite = true
+            null,
+            null,
+            null
+        )
+
+        with(cursor) {
+            while (moveToNext()) {
+                val id = getInt(getColumnIndexOrThrow(COLUMN_FLIGHT_ID))
+                val departureIata = getString(getColumnIndexOrThrow(DatabaseHelper.COLUMN_DEPARTURE_FLIGHT_IATA))
+                val departureName = getString(getColumnIndexOrThrow(DatabaseHelper.COLUMN_DEPARTURE_FLIGHT_NAME))
+                val destinationIata = getString(getColumnIndexOrThrow(DatabaseHelper.COLUMN_DESTINATION_FLIGHT_IATA))
+                val destinationName = getString(getColumnIndexOrThrow(DatabaseHelper.COLUMN_DESTINATION_FLIGHT_NAME))
+                val isFavorite = getInt(getColumnIndexOrThrow(COLUMN_USER_FAVORITE)) == 1 // Convertir en Boolean
+
+                flights.add(Flight(
+                    id,
+                    departureIata,
+                    departureName,
+                    destinationIata,
+                    destinationName,
+                    mutableStateOf(isFavorite)
+                ))
+            }
+        }
+
+        cursor.close() // Assurez-vous de fermer le curseur
         return flights
     }
 }

@@ -1,5 +1,6 @@
 package com.example.mobileairportapp.pages
 
+import android.graphics.BlendModeColorFilter
 import androidx.annotation.VisibleForTesting
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -13,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -21,6 +23,8 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.mobileairportapp.Helpers.Helper
 import com.example.mobileairportapp.R
+import com.example.mobileairportapp.database.Airport
+import com.example.mobileairportapp.database.Repository
 
 class SearchAirportScreen {
 
@@ -37,13 +41,32 @@ class SearchAirportScreen {
         val scrollState = rememberScrollState()
         val screenWidth = configuration.screenWidthDp.dp
 
+        val context = LocalContext.current
+        val airportRepo = Repository(context)
+
         var isFavorite by remember { mutableStateOf(false) }
 
         var searchBoxInput by remember {
             mutableStateOf("")
         }
+        val airports = remember {
+            mutableStateListOf<Airport>()
+        }
+
         val airport = searchBoxInput.toString()
         val searchValue = SearchText(airport)
+
+        val favoriteFlight = airportRepo.getFavoriteFlights()
+
+        LaunchedEffect(searchValue){
+            if (searchValue.isNotBlank()){
+                // vider la liste avant d'ajouter de nouveaux résultats
+                airports.clear()
+                airports.addAll(airportRepo.searchAirports(searchValue))
+            }else{
+                airports.clear()
+            }
+        }
 
         Column(
             modifier = Modifier
@@ -119,98 +142,260 @@ class SearchAirportScreen {
                 .fillMaxWidth()
             ) {
                 // Column avec défilement vertical
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .verticalScroll(scrollState) // Activer le défilement vertical
-                ) {  // Remplacer par le nombre d'éléments souhaité
-                        Row(horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp)
-                                .height((screenHeight * 0.15f))
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(Color.LightGray)
-
-                        ) {
-                            Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                                Column() {
-                                    Text(
-                                        text = "Depart",
-                                        modifier = Modifier.padding(bottom = 5.dp),
-                                        style = TextStyle(
-                                            color = Color.DarkGray,
-                                            fontSize = 16.sp
-                                        )
+                if(airports.isNotEmpty()){
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .verticalScroll(scrollState) // Activer le défilement vertical
+                    ) {  // Remplacer par le nombre d'éléments souhaité
+                        airports.forEach{ airport ->
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp)
+                                    // passer l'identifiant ici pour les actions dans la bd
+                                    .clickable {
+                                        navController.navigate("Flight_Screen/${airport.iataCode}")
+                                    }
+                            ) {
+                                Text(
+                                    text = airport.iataCode, // Utilisez le nom correct ici
+                                    modifier = Modifier.padding(bottom = 5.dp),
+                                    style = TextStyle(
+                                        color = Color.DarkGray,
+                                        fontSize = 16.sp
                                     )
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                )
+                                Text(
+                                    text = airport.name,
+                                    style = TextStyle(
+                                        color = Color.Gray,
+                                        fontSize = 12.sp
+                                    )
+                                )
+                                Divider(
+                                    color = Color.Black,
+                                    thickness = 1.dp,
+                                    modifier = Modifier.padding(vertical = 4.dp)
+                                )
+                            }
+                            /*Row(horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp)
+                                    .height((screenHeight * 0.15f))
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(Color.LightGray)
+
+                            ) {
+                                Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                                    Column() {
                                         Text(
-                                            text = "MUC",
+                                            text = "Depart",
+                                            modifier = Modifier.padding(bottom = 5.dp),
                                             style = TextStyle(
-                                                color = Color.Black,
-                                                fontSize = 14.sp,
-                                                fontWeight = FontWeight.Bold
+                                                color = Color.DarkGray,
+                                                fontSize = 16.sp
                                             )
                                         )
-                                        Spacer(modifier = Modifier.width(12.dp))
-                                        Text(
-                                            text = "Munich International airport",
-                                            style = TextStyle(
-                                                color = Color.Gray,
-                                                fontSize = 12.sp
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(
+                                                text = "MUC",
+                                                style = TextStyle(
+                                                    color = Color.Black,
+                                                    fontSize = 14.sp,
+                                                    fontWeight = FontWeight.Bold
+                                                )
                                             )
+                                            Spacer(modifier = Modifier.width(12.dp))
+                                            Text(
+                                                text = "Munich International airport",
+                                                style = TextStyle(
+                                                    color = Color.Gray,
+                                                    fontSize = 12.sp
+                                                )
+                                            )
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.height(10.dp))
+                                    Column() {
+                                        Text(
+                                            text = "Arrivée",
+                                            modifier = Modifier.padding(bottom = 5.dp),
+                                            style = TextStyle(
+                                                color = Color.DarkGray,
+                                                fontSize = 16.sp
+                                            )
+                                        )
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(
+                                                text = "FCO",
+                                                style = TextStyle(
+                                                    color = Color.Black,
+                                                    fontSize = 14.sp,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            )
+                                            Spacer(modifier = Modifier.width(12.dp))
+                                            Text(
+                                                text = "Munich International airport",
+                                                style = TextStyle(
+                                                    color = Color.Gray,
+                                                    fontSize = 12.sp
+                                                )
+                                            )
+                                        }
+                                    }
+                                }
+                                Column(modifier = Modifier
+                                    .padding(horizontal = 16.dp)
+                                    .clickable { isFavorite = !isFavorite }) {
+                                    if (isFavorite) {
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.icons_full),
+                                            contentDescription = null,
+                                            modifier = Modifier
+                                                .size(32.dp)
+                                        )
+                                    } else {
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.icons_empty),
+                                            contentDescription = null,
+                                            modifier = Modifier
+                                                .size(32.dp)
                                         )
                                     }
                                 }
-                                Spacer(modifier = Modifier.height(10.dp))
-                                Column() {
-                                    Text(
-                                        text = "Arrivée",
-                                        modifier = Modifier.padding(bottom = 5.dp),
-                                        style = TextStyle(
-                                            color = Color.DarkGray,
-                                            fontSize = 16.sp
-                                        )
-                                    )
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(
-                                            text = "FCO",
-                                            style = TextStyle(
-                                                color = Color.Black,
-                                                fontSize = 14.sp,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        )
-                                        Spacer(modifier = Modifier.width(12.dp))
-                                        Text(
-                                            text = "Munich International airport",
-                                            style = TextStyle(
-                                                color = Color.Gray,
-                                                fontSize = 12.sp
-                                            )
-                                        )
-                                    }
-                                }
-                            }
-                            Column(modifier = Modifier.padding(horizontal = 16.dp).clickable { isFavorite = !isFavorite }) {
-                                if (isFavorite) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.icons_full),
-                                        contentDescription = null,
-                                        modifier = Modifier
-                                            .size(32.dp)
-                                    )
-                                } else {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.icons_empty),
-                                        contentDescription = null,
-                                        modifier = Modifier
-                                            .size(32.dp)
-                                    )
-                                }
-                            }
 
+                            }*/
                         }
+                    }
+                }
+                else if(favoriteFlight.isNotEmpty()){
+
+                    // Défilement vertical
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .verticalScroll(scrollState) // Activer le défilement vertical
+                    ) {
+                        favoriteFlight.forEach { flight ->
+                            println("flights : $flight")
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                            ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 8.dp)
+                                        .height((screenHeight * 0.15f))
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .background(Color.LightGray)
+                                ) {
+                                    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                                        // Détails de départ
+                                        Column(modifier = Modifier.clickable { println(flight.id) }) {
+                                            Text(
+                                                text = "Départ",
+                                                modifier = Modifier.padding(bottom = 5.dp),
+                                                style = TextStyle(
+                                                    color = Color.DarkGray,
+                                                    fontSize = 16.sp
+                                                )
+                                            )
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text(
+                                                    text = flight.departure_iata,
+                                                    style = TextStyle(
+                                                        color = Color.Black,
+                                                        fontSize = 14.sp,
+                                                        fontWeight = FontWeight.Bold
+                                                    )
+                                                )
+                                                Spacer(modifier = Modifier.width(12.dp))
+                                                Text(
+                                                    text = flight.departure_name,
+                                                    style = TextStyle(
+                                                        color = Color.Gray,
+                                                        fontSize = 12.sp
+                                                    )
+                                                )
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.height(10.dp))
+                                        // Détails d'arrivée
+                                        Column {
+                                            Text(
+                                                text = "Arrivée",
+                                                modifier = Modifier.padding(bottom = 5.dp),
+                                                style = TextStyle(
+                                                    color = Color.DarkGray,
+                                                    fontSize = 16.sp
+                                                )
+                                            )
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text(
+                                                    text = flight.destination_iata,
+                                                    style = TextStyle(
+                                                        color = Color.Black,
+                                                        fontSize = 14.sp,
+                                                        fontWeight = FontWeight.Bold
+                                                    )
+                                                )
+                                                Spacer(modifier = Modifier.width(12.dp))
+                                                Text(
+                                                    text = flight.destination_name,
+                                                    style = TextStyle(
+                                                        color = Color.Gray,
+                                                        fontSize = 12.sp
+                                                    )
+                                                )
+                                            }
+                                        }
+                                    }
+                                    // Icône favori
+                                    Column(
+                                        modifier = Modifier
+                                            .padding(horizontal = 16.dp)
+                                            .clickable {
+                                                // Inverser l'état
+                                                val newStatus = !flight.isFavorite.value
+                                                flight.isFavorite.value = newStatus
+
+                                                // Appeler la fonction de mise à jour
+                                                airportRepo.updateFavoriteStatus(
+                                                    flight.id.toLong(),
+                                                    newStatus
+                                                )
+
+                                                println("mes vols *--------------------------------${newStatus}")
+                                            }
+                                    ) {
+                                        if (flight.isFavorite.value) {
+                                            Icon(
+                                                painter = painterResource(id = R.drawable.icons_full),
+                                                contentDescription = null,
+                                                modifier = Modifier.size(32.dp)
+                                            )
+                                        } else {
+                                            Icon(
+                                                painter = painterResource(id = R.drawable.icons_empty),
+                                                contentDescription = null,
+                                                modifier = Modifier.size(32.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }else{
+                    Column(verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally,modifier = Modifier.fillMaxSize()) {
+                        Text(text = "No Favorite airport added yet!!!", style = TextStyle(color = Color.DarkGray))
+                    }
                 }
 
                 // Box superposée
@@ -220,7 +405,11 @@ class SearchAirportScreen {
                         .padding(16.dp) // Ajuster le padding si nécessaire
                 ) {
                     Button(
-                        onClick = {navController.navigate("Airports") },
+                        onClick = {
+                            navController.navigate("Airports") {
+                                popUpTo("searchAirport_screen") { inclusive = true }
+                            }
+                                  },
                         colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF00BFFF)),
                         modifier = Modifier
                             .border(

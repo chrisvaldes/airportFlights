@@ -4,7 +4,7 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 
 data class Flight(
-    val id: String,
+    val id: Int,
     val departure_iata: String,
     val departure_name: String,
     val destination_iata: String,

@@ -68,7 +68,9 @@ class CreateNewAirportScreen {
                 Log.d("CreateNewAirportScreen", "name : $name")
                 Log.d("CreateNewAirportScreen", "*************************")*/
                 airportRepo.addAirport(iata, name)
-                navController.navigate("searchAirport_screen")
+                navController.navigate("searchAirport_screen"){
+                    popUpTo("searchAirport_screen")
+                }
             }else{
                 errorMessage = ""
             }

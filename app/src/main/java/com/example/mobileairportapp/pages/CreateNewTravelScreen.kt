@@ -58,7 +58,9 @@ class CreateNewTravelScreen {
 
             if (departure_iata_code != null && destination_iata_code != null) {
                 airportRepo.addFlight(departure_iata, departure_iata_code.name, destination_iata, destination_iata_code.name)
-                navController.navigate("AddNewTravel")
+                navController.navigate("AddNewTravel"){
+                    popUpTo("searchAirport_screen")
+                }
             }else{
 
             }
