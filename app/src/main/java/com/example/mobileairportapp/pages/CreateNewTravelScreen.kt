@@ -18,6 +18,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -25,6 +26,7 @@ import com.example.mobileairportapp.Helpers.Helper
 import com.example.mobileairportapp.R
 import com.example.mobileairportapp.database.Airport
 import com.example.mobileairportapp.database.Repository
+import kotlinx.coroutines.delay
 
 
 @VisibleForTesting
@@ -43,6 +45,10 @@ class CreateNewTravelScreen {
         val context = LocalContext.current
         val airportRepo = Repository(context)
 
+
+        var showSnackbar by remember { mutableStateOf(false) }
+        var snackbarMessage by remember { mutableStateOf("") }
+
         // État pour gérer l'affichage du menu déroulant et la sélection
         var expandedDeparture by remember { mutableStateOf(false) }
         var expandedDestination by remember { mutableStateOf(false) }
@@ -52,17 +58,22 @@ class CreateNewTravelScreen {
         val departure_iata = selectedOptionDeparture.toString()
         val destination_iata = selectedOptionDestination.toString()
 
-        fun saveFlight(){
+        fun saveFlight() {
+            // Logique pour obtenir les codes IATA
             val departure_iata_code = airportRepo.getFlightByIata(departure_iata)
             val destination_iata_code = airportRepo.getFlightByIata(destination_iata)
 
             if (departure_iata_code != null && destination_iata_code != null) {
-                airportRepo.addFlight(departure_iata, departure_iata_code.name, destination_iata, destination_iata_code.name)
-                navController.navigate("AddNewTravel"){
-                    popUpTo("searchAirport_screen")
-                }
-            }else{
 
+                airportRepo.addFlight(departure_iata, departure_iata_code.name, destination_iata, destination_iata_code.name)
+
+                // Afficher le snackbar avant de naviguer
+                snackbarMessage = "Flight added successfully!!!"
+                showSnackbar = true
+
+            } else {
+                snackbarMessage = "Please fill all fields!!!"
+                showSnackbar = true
             }
         }
 
@@ -189,7 +200,8 @@ class CreateNewTravelScreen {
                     }
 
                 }
-                Spacer(modifier = Modifier.height((screenHeight * 0.15f)))
+
+                Spacer(modifier = Modifier.height((screenHeight * 0.10f)))
                 Column(
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
@@ -234,6 +246,7 @@ class CreateNewTravelScreen {
                             horizontalArrangement = Arrangement.Center,
                             modifier = Modifier.fillMaxWidth()
                         ) {
+
                             Button(
                                 modifier = Modifier
                                     .border(
@@ -249,6 +262,7 @@ class CreateNewTravelScreen {
                                 onClick = {
                                     println("IATA Code: $departure_iata")
                                     println("Name Airport: $destination_iata")
+
                                     saveFlight()
                                 }
                             ) {
@@ -260,6 +274,27 @@ class CreateNewTravelScreen {
                             }
                         }
 
+                        Spacer(modifier = Modifier.height((screenHeight * 0.050f)))
+                        if (showSnackbar) {
+                            Snackbar(
+                                action = {
+                                    Button(onClick = { showSnackbar = false }) {
+                                        Text("Fermer")
+                                    }
+                                }
+                            ) {
+                                Text(snackbarMessage)
+                            }
+                            // Coroutine pour masquer le Snackbar après un délai
+                            // Utiliser LaunchedEffect pour gérer la navigation après le délai
+                            LaunchedEffect(Unit) {
+                                delay(3000) // Attendre 20 secondes
+                                navController.navigate("AddNewTravel") {
+                                    popUpTo("searchAirport_screen") { inclusive = true }
+                                }
+                                showSnackbar = false // Masquer le snackbar après la navigation
+                            }
+                        }
                     }
 
                 }

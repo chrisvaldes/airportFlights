@@ -23,6 +23,7 @@ import androidx.navigation.NavController
 import com.example.mobileairportapp.Helpers.Helper
 import com.example.mobileairportapp.R
 import com.example.mobileairportapp.database.Repository
+import kotlinx.coroutines.delay
 
 class CreateNewAirportScreen {
 
@@ -44,6 +45,9 @@ class CreateNewAirportScreen {
         val scrollState = rememberScrollState()
         val context = LocalContext.current
         val airportRepo = Repository(context)
+
+        var showSnackbar by remember { mutableStateOf(false) }
+        var snackbarMessage by remember { mutableStateOf("") }
 
         var iata_code by remember {
             mutableStateOf("")
@@ -67,12 +71,14 @@ class CreateNewAirportScreen {
                 Log.d("CreateNewAirportScreen", "iata : $iata")
                 Log.d("CreateNewAirportScreen", "name : $name")
                 Log.d("CreateNewAirportScreen", "*************************")*/
+
                 airportRepo.addAirport(iata, name)
-                navController.navigate("searchAirport_screen"){
-                    popUpTo("searchAirport_screen")
-                }
+
+                showSnackbar = true
+                snackbarMessage = "Airport added successfully!!!"
+
             }else{
-                errorMessage = ""
+                snackbarMessage = "Please fill all Fields!!!"
             }
         }
 
@@ -115,15 +121,6 @@ class CreateNewAirportScreen {
                         )
                     }
 
-                }
-
-                // Afficher le message d'erreur s'il existe
-                if (errorMessage.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "errorMessage",
-                        color = MaterialTheme.colors.error // Utiliser la couleur d'erreur du
-                    )
                 }
 
                 Spacer(modifier = Modifier.height((screenHeight * 0.15f)))
@@ -202,6 +199,30 @@ class CreateNewAirportScreen {
                                     fontSize = 18.sp,
                                     color = Color.White,
                                 )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height((screenHeight * 0.050f)))
+                        if (showSnackbar) {
+                            Snackbar(
+                                action = {
+                                    Button(onClick = { showSnackbar = false }) {
+                                        Text("Fermer")
+                                    }
+                                }
+                            ) {
+                                Text(text=snackbarMessage,
+                                    color = if(snackbarMessage.startsWith("Please fill")) Color.Red else Color.Unspecified
+                                    )
+                            }
+                            // Coroutine pour masquer le Snackbar après un délai
+                            // Utiliser LaunchedEffect pour gérer la navigation après le délai
+                            LaunchedEffect(Unit) {
+                                delay(3000) // Attendre 20 secondes
+                                navController.navigate("AddNewAirport") {
+                                    popUpTo("searchAirport_screen") { inclusive = true }
+                                }
+                                showSnackbar = false // Masquer le snackbar après la navigation
                             }
                         }
 
